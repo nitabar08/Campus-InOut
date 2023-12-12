@@ -1,0 +1,134 @@
+function sendEmail(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();  //ss is linked spreadsheet
+  var sheetForm = ss.getSheetByName('Form Responses 1');
+  var rowForm = sheetForm.getLastRow();  //most recently filled row number
+  var data = sheetForm.getDataRange().getValues();
+  var nameStu = sheetForm.getRange(rowForm,3).getValue();
+  var emailStu =sheetForm.getRange(rowForm,2).getValue();
+  var hostel =sheetForm.getRange(rowForm,6).getValue();
+  var rollNumber = sheetForm.getRange(rowForm,4).getValue();
+  var url = "https://script.google.com/macros/s/AKfycbxC5Frli1dekHVZNoUY40CNZv0TnyXiiBn1ehY85DllSh4eZv1As2jeqHWqw_Xv_FAWOA/exec";
+  sheetForm.getRange(rowForm, 15).setValue("");
+  //Date format
+  var cell3=sheetForm.getRange(rowForm,5).getA1Notation();
+  var ab = sheetForm.getRange(rowForm ,14);
+  ab.setFormula('=TEXT('+cell3+',"MMMM d, YYYY")');  //formula to change the date format 
+
+  //approval link to guard
+  var approve = url +'?approval=true'+'&rowForm='+rowForm;
+
+  var cell1 = sheetForm.getRange(rowForm,7).getA1Notation();  //get A1 notation i.e cell number of "start time of visit"
+  var a = sheetForm.getRange(rowForm ,11); 
+  a.setFormula('=TEXT('+cell1+',"hh:mm AM/PM")');  //formula to change the time format 
+ 
+  //time format
+  var outtimecell = sheetForm.getRange(rowForm,11).getA1Notation();
+  sheetForm.getRange(rowForm,12).setValue("01:00");
+  var hour = sheetForm.getRange(rowForm,12).getA1Notation(); //for addition of 1 Hr from the start time respectively for showing to the guard.
+  sheetForm.getRange(rowForm,13).setFormula('=TEXT('+outtimecell+"+"+hour+',"hh:mm AM/PM")');  
+  var emailGuard1 = "nitabar@iitbhilai.ac.in"; //Change this to the email of Guard.
+  var emailGuard2 = "nitabar2003@gmail.com";  //Change this to the email of Guard.
+  
+  //mail to guard
+  var subject = "Exit Permitted to Student with ID "+rollNumber;
+  var html = "<body>"+
+  "<p>(This is an automated message. Do not reply to this email.)<p>"+
+  "<br><br>" +
+  "The following student has registered for leaving the premises.<br /><br />"+
+  "===========================================<br />" +
+  "Student's name: " + nameStu + "<br />" +
+  "Student's roll number: " + rollNumber + "<br />" +
+  "Student's Email-Id: " + emailStu + "<br />" +
+  "Date of Visit: " + sheetForm.getRange(rowForm ,14).getValue() + "<br />" +
+  "The student wants to exit at" + a.getValue() + " <br />" +
+  nameStu + " stays in: Castle " + hostel + "<br />" + 
+  "<br /> =============================================" +
+  "<br /><br />If the student comes back by " +sheetForm.getRange(rowForm,13).getValue()+", click on the below link to update the information. <br /><br />" +
+  "<a href="+ approve +">Permitted into campus</a><br />"+
+  "<br /><br />Best regards," +
+  "<br />Admin"
+  "</body>";
+
+  //mail to student
+  var subjectgood = "Exit Permitted";
+  var htmlgood = "<body>"+
+  "<p>(This is an automated message. Do not reply to this email.)<p>"+
+  "<br><br>" +
+  "The following student has registered for leaving the premises.<br /><br />"+
+  "===========================================<br />" +
+  "Student's name: " + nameStu + "<br />" +
+  "Student's roll number: " + rollNumber + "<br />" +
+  "Student's Email-Id: " + emailStu + "<br />" +
+  "Date of Visit: " + sheetForm.getRange(rowForm ,14).getValue() + "<br />" +
+  "The student has applied to exit at: " + a.getValue() + " <br />" +
+  "The student will be permitted back to campus before: " + sheetForm.getRange(rowForm,13).getValue() + " <br />" +
+  nameStu + " stays in: Castle " + hostel + "<br />" + 
+  "<br /> =============================================" +
+  "<br /><br />Best regards," +
+  "<br />Admin"
+  "</body>";
+
+  //mail to student if wrong details filled.
+  var subjectbad= "Not Permitted to leave the campus";
+  var htmlbad= "<body>"+
+  "(This is an automated message. Do not reply to this email.)"+
+  "<br><br>Dear " + nameStu + "," +
+  "<br />Due to lack of tokens you are not permitted to leave the campus. "+
+  "You may re-register after few hours. <br /><br />" +
+  "<br />Best regards," +
+  "<br />Admin"
+  "</body>";
+
+
+
+  if (rowForm==2){
+    sheetForm.getRange(rowForm,9).setValue(15);
+  }
+
+  else{
+    sheetForm.getRange(rowForm,9).setValue(data[rowForm-2][9]);
+  }
+  if (sheetForm.getRange(rowForm,9).getValue()>0){
+      sheetForm.getRange(rowForm,8).setValue("Permitted");
+      sheetForm.getRange(rowForm,10).setValue(sheetForm.getRange(rowForm,9).getValue()-1);
+      if (hostel=='Dio'){
+        MailApp.sendEmail({to: emailGuard1,  subject: subject, htmlBody: html});
+      }
+      if(hostel=='Ena'){
+        MailApp.sendEmail({to: emailGuard2,  subject: subject, htmlBody: html});
+      }
+
+      MailApp.sendEmail({to: emailStu, subject: subjectgood, htmlBody: htmlgood});
+  }
+  if (sheetForm.getRange(rowForm,9).getValue()==0){
+      sheetForm.getRange(rowForm,8).setValue("Not Permitted");
+      sheetForm.getRange(rowForm,10).setValue(sheetForm.getRange(rowForm,9).getValue());
+      MailApp.sendEmail({to: emailStu, subject: subjectbad, htmlBody: htmlbad});
+  }
+}
+
+function doGet(e) {
+var htmlOutput = HtmlService.createTemplateFromFile("rollno.html");
+htmlOutput.url = ScriptApp.getService().getUrl();
+htmlOutput.roll='';
+var ss = SpreadsheetApp.getActiveSpreadsheet();
+var sheetForm = ss.getSheetByName('Form Responses 1');
+var rowForm = sheetForm.getLastRow();
+var data = sheetForm.getDataRange().getValues();
+for(i=0; i<data.length; i++){
+if(e.parameter['roll']==data[i][3] && data[i][14]!='Permitted'){
+  sheetForm.getRange(i+1, 15).setValue('Permitted');
+  var nameStu = data[i][2]; 
+  var lastupdatedtoken = data[rowForm-1][9];
+  sheetForm.getRange(rowForm, 10).setValue(lastupdatedtoken+1); 
+  htmlOutput.roll = nameStu+' is permitted into campus.Thanks for updating.';
+  break;
+}
+
+}
+
+
+
+return htmlOutput.evaluate();
+
+}
